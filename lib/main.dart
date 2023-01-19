@@ -1,14 +1,17 @@
-
+import 'package:battery_stats/di_setup.dart' as di_setup;
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 
 import 'presentation/home/home_screen.dart';
+
+final getIt = GetIt.instance;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  runApp(
-     const MyApp()
-  );
+  di_setup.setupInjections();
+
+  runApp(const MyApp());
 }
 
 class MyApp extends StatefulWidget {
@@ -20,7 +23,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   @override
-  Widget build(BuildContext context) => MaterialApp(
+  Widget build(BuildContext context) => const MaterialApp(
         debugShowCheckedModeBanner: false,
         home: HomeScreen(),
       );

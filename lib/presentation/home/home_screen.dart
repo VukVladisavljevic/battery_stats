@@ -1,45 +1,43 @@
+
+import 'package:battery_stats/main.dart';
+import 'package:battery_stats/presentation/home/home_view_model.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
-  static const platform = MethodChannel('com.example.battery_stats');
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-@override
-Widget build(BuildContext context) {
-  return Material(
-    child: Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          ElevatedButton(
-            onPressed: _getBatteryLevel,
-            child: const Text('Get Battery Level'),
-          ),
-          Text(_batteryLevel),
-        ],
+  final HomeViewModel _homeViewModel = getIt();
+
+  @override
+  void initState() {
+    super.initState();
+    _homeViewModel.startListeningBatteryStatus();
+  }
+
+  @override
+  void dispose() {
+    _homeViewModel.stopListeningBatteryStatus();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+
+    return Scaffold(
+      body: ChangeNotifierProvider<HomeViewModel>(
+        create: (context) => _homeViewModel,
+        child: Consumer<HomeViewModel>(builder: (context, value, __) => _buildScreenContent(context, value)),
       ),
-    ),
-  );
-}
+    );
+  }
 
-  String _batteryLevel = 'Unknown battery level.';
-
-  Future<void> _getBatteryLevel() async {
-    String batteryLevel;
-    try {
-      final int result = await HomeScreen.platform.invokeMethod('getBatteryLevel');
-      batteryLevel = 'Battery level at $result % .';
-    } on PlatformException catch (e) {
-      batteryLevel = "Failed to get battery level: '${e.message}'.";
-    }
-
-    setState(() {
-      _batteryLevel = batteryLevel;
-    });
+  Widget _buildScreenContent(BuildContext context, HomeViewModel viewModel) {
+    return Center(child: Text(viewModel.batteryLevel.toString()));
   }
 }
