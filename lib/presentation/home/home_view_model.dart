@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
 
 import 'package:battery_stats/domain/stats/get_battery_stats_usecase.dart';
 import 'package:flutter/material.dart';
@@ -7,29 +6,65 @@ import 'package:flutter/material.dart';
 class HomeViewModel extends ChangeNotifier {
   final GetBatteryLevelUsecase _getBatteryLevelUsecase;
 
-  double batteryLevel = 0.0;
-  bool isDataAvailable = false;
-
-  late final StreamSubscription _streamSubscription;
-
   HomeViewModel(this._getBatteryLevelUsecase);
 
+  double? batteryLevel;
+  double? threshold;
+  bool showAlert = false;
+  StreamSubscription? _streamSubscription;
+
+  bool get isListening => _streamSubscription != null;
+  bool get isThresholdActive => (threshold != null && isListening);
+
   void startListeningBatteryStatus() {
-    _streamSubscription =
-        _getBatteryLevelUsecase.call().listen(((event) => _presentData(event)));
+    _streamSubscription ??= _getBatteryLevelUsecase.call().listen((event) => _updateBatteryLevel(event));
   }
 
-  void stopListeningBatteryStatus() => _streamSubscription.cancel();
-
-  void _presentData(dynamic value) {
-    if (value == null) {
-      isDataAvailable = false;
-      return;
-    } else {
-      batteryLevel = value + .0;
+  void stopListeningBatteryStatus() {
+    if (_streamSubscription != null) {
+      _streamSubscription?.cancel();
+      _streamSubscription = null;
     }
 
-    log('Novi event sa' + batteryLevel.toString());
+    removeThreshold();
+    batteryLevel = null;
+    deferredNotify();
+  }
+
+  void setThreshold(double value) {
+    if (value > 0 && value < 100) {
+      threshold = value;
+      // showAlert = true;
+    }
     notifyListeners();
   }
+
+  void removeThreshold() {
+    threshold = null;
+    showAlert = false;
+    notifyListeners();
+  }
+
+  void _updateBatteryLevel(dynamic value) {
+    batteryLevel = value;
+
+    if (isThresholdActive) {
+      if (value < threshold) {
+        showAlert = true;
+      }
+
+      if (value > threshold) {
+        showAlert = false;
+      }
+    }
+    deferredNotify();
+  }
+
+  /// This enables successive runs of notifyListeners() within same function
+  void deferredNotify() => Future.delayed(
+        Duration.zero,
+        () async {
+          notifyListeners();
+        },
+      );
 }
